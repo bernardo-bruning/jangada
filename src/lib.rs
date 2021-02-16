@@ -13,9 +13,10 @@ pub enum State {
 
 #[derive(Debug)]
 pub struct Node {
+    pub state: State,
+    pub entries: Vec<i32>,
     uuid: usize,
     leader_uuid: usize,
-    pub state: State,
     last_heartbeat: Instant,
     timeout_heartbeat: Duration,
     term: i64,
@@ -32,6 +33,7 @@ impl Node {
             timeout_heartbeat: Duration::from_millis(rander.gen_range(150..300)),
             term: 0,
             leader_uuid: 0,
+            entries: vec![],
         }
     }
 
@@ -45,6 +47,7 @@ impl Node {
             timeout_heartbeat: Duration::from_millis(rander.gen_range(150..300)),
             term: 1,
             leader_uuid: 0,
+            entries: vec![],
         }
     }
 
@@ -58,6 +61,7 @@ impl Node {
             timeout_heartbeat: Duration::from_millis(rander.gen_range(150..300)),
             term: 0,
             leader_uuid: 0,
+            entries: vec![],
         }
     }
 
@@ -70,7 +74,7 @@ impl Node {
     pub async fn iterate(&mut self, cluster: Vec<&mut Node>, instant: Instant) {
         if self.state == State::Leader {
             stream::iter(cluster)
-                .for_each(move |node| { node.append_entry(self.term, instant) })
+                .for_each(move |node| { node.append_entry(self.term, instant, vec![]) })
                 .await;
             return;
         }
@@ -88,13 +92,14 @@ impl Node {
         }
     }
 
-    pub async fn append_entry(&mut self, term: i64, instant: Instant) {
+    pub async fn append_entry(&mut self, term: i64, instant: Instant, mut entries: Vec<i32>) {
         if self.term > term {
             return
         }
 
         self.term = term;
         self.last_heartbeat = instant;
+        self.entries.append(&mut entries);
         if self.state != State::Candidate {
             self.state = State::Follower;
         }

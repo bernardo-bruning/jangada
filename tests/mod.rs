@@ -13,6 +13,21 @@ fn test_intialize_follower() {
 }
 
 #[test]
+fn test_append_entry() {
+    let mut node = Node::new(0);
+    block_on(node.append_entry(1, Instant::now(), vec![1, 2, 3]));
+    assert_eq!(node.entries, vec![1, 2, 3])
+}
+
+#[test]
+fn test_append_multiple_times_entries() {
+    let mut node = Node::new(0);
+    block_on(node.append_entry(1, Instant::now(), vec![1, 2, 3]));
+    block_on(node.append_entry(1, Instant::now(), vec![4]));
+    assert_eq!(node.entries, vec![1, 2, 3, 4])
+}
+
+#[test]
 fn test_follower_tick() {
     let mut follower = Node::new(0);
     let mut instant = Instant::now();
@@ -34,9 +49,9 @@ fn test_candidate() {
 fn test_heartbeat() {
     let mut follower = Node::new(0);
     follower.tick(Instant::now() + Duration::from_millis(100));
-    block_on(follower.append_entry(0, Instant::now() + Duration::from_millis(100)));
+    block_on(follower.append_entry(0, Instant::now() + Duration::from_millis(100), vec![]));
     follower.tick(Instant::now() + Duration::from_millis(200));
-    block_on(follower.append_entry(0, Instant::now() + Duration::from_millis(300)));
+    block_on(follower.append_entry(0, Instant::now() + Duration::from_millis(300), vec![]));
     follower.tick(Instant::now() + Duration::from_millis(350));
 
     assert_eq!(State::Follower, follower.state)
@@ -46,9 +61,10 @@ fn test_heartbeat() {
 fn test_reject_leader() {
     let mut follower = Node::new(0);
     follower.tick(Instant::now() + Duration::from_millis(100));
-    block_on(follower.append_entry(2, Instant::now() + Duration::from_millis(100)));
+    block_on(follower.append_entry(2, Instant::now() + Duration::from_millis(100), vec![]));
     follower.tick(Instant::now() + Duration::from_millis(200));
-    block_on(follower.append_entry(1, Instant::now() + Duration::from_millis(300)));
+    block_on(follower.append_entry(1, Instant::now() + Duration::from_millis(300), vec![]
+));
     follower.tick(Instant::now() + Duration::from_millis(400));
 
     assert_eq!(State::Candidate, follower.state)        
